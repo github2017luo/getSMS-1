@@ -2,7 +2,8 @@
 import time
 import threading
 import requests
-from six.moves import queue as Queue
+import re
+import queue as Queue
 from bs4 import BeautifulSoup
 
 PHONE = Queue.Queue()  # 手机号码队列
@@ -61,8 +62,25 @@ class smsCollect(object):
 
     def setNum(self):
         phone_list = getPhoneNum()
-        if not phone_list:
+        if phone_list:
             for i in phone_list:
                 self.queue.put(i)
         else:
             print("目标网页获取电话失败！请检查网络。")
+
+    def getSms(self):
+        obj = self.getNum()
+        phone = obj["phone"].pop(0)
+        if phone[0:3] != "+86":
+            obj["phone"].append(phone)
+            phone = obj["phone"].pop(0)
+        try:
+            resp = requests.get("https://www.pdflibr.com"+obj.url)
+            if resp.status_code == 200:
+                text=re.findall(r'\d+',str1)          
+        except:
+            pass
+    return phone_list
+
+
+smsCollect().getSms()
