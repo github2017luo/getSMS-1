@@ -2,6 +2,7 @@
 import time
 import threading
 import requests
+from datetime import datetime
 import re
 import queue as Queue
 from bs4 import BeautifulSoup
@@ -68,19 +69,41 @@ class smsCollect(object):
         else:
             print("目标网页获取电话失败！请检查网络。")
 
-    def getSms(self):
+    def getSms(self, times="",title="",num=4):
+        """
+        获取验证码
+        Args：
+            times：验证码发送时间
+            title：验证码头部标题
+            num：验证码位数
+        Return：验证码
+        """
         obj = self.getNum()
         phone = obj["phone"].pop(0)
         if phone[0:3] != "+86":
             obj["phone"].append(phone)
             phone = obj["phone"].pop(0)
-        try:
-            resp = requests.get("https://www.pdflibr.com"+obj.url)
-            if resp.status_code == 200:
-                text=re.findall(r'\d+',str1)          
-        except:
-            pass
-    return phone_list
+        code = ''  # 保存验证码
+        tryNum = 0
+        while tryNum < 5:
+            try:
+                resp = requests.get("https://www.pdflibr.com"+obj['url'])
+                if resp.status_code == 200:
+                    html = BeautifulSoup(resp.text, 'lxml')
+                    tr = html.select("section:nth-of-type(2) tbody tr")
+                    for i in tr:
+                        timeArray = time.strptime(i.find("time").get_text(), "%Y-%m-%d %H:%M:%S")
+                        timestamp = time.mktime(timeArray)
+                        if timestamp>times:
+                            text = re.findall(r''+title+'.*[\d]{4}', i.get_text())
+                            if text:
+                                code = re.findall(r'[\d]{4}',text[0])
+                                if code:
+                                    tryNum=6
+                                    return code[0]
+            except:
+                tryNum += 1
+                pass
 
 
-smsCollect().getSms()
+smsCollect().getSms(10,"阿里巴巴")
